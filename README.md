@@ -225,7 +225,9 @@ Render (backend):
 2. Build command: `npm install && npx prisma generate`.
 3. Start command: `npx prisma migrate deploy && npm start`.
 4. Set all backend env vars in Render dashboard (`DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`, `GOOGLE_CLIENT_ID`, SMTP vars, etc.).
-5. Set `FRONTEND_URL` to your Vercel domain.
+5. Set `FRONTEND_URL` to your primary Vercel domain.
+6. Optional: set `FRONTEND_URLS` as comma-separated additional domains (custom domains, staging).
+7. Keep `ALLOW_VERCEL_PREVIEW=true` to allow `*.vercel.app` preview URLs.
 
 Vercel (frontend):
 1. Import repo and set project root to `frontend/`.
@@ -237,6 +239,10 @@ Vercel (frontend):
 
 SMTP note:
 - For Gmail, set `SMTP_PASS` to a Gmail App Password (not your normal account password).
+
+CORS behavior:
+- Local works by default for `http://localhost:5173` and `http://127.0.0.1:5173`.
+- Production allows configured frontend origins plus optional Vercel preview domains.
 
 Repository deployment helpers:
 - `render.yaml` includes backend build/start/env scaffolding for Render.

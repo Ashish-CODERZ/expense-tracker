@@ -14,6 +14,10 @@ services:
         value: 10000
       - key: FRONTEND_URL
         sync: false
+      - key: FRONTEND_URLS
+        sync: false
+      - key: ALLOW_VERCEL_PREVIEW
+        value: "true"
       - key: DATABASE_URL
         sync: false
       - key: DIRECT_URL
