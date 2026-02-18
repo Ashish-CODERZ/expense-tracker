@@ -10,6 +10,8 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 20
+      - key: NODE_ENV
+        value: production
       - key: PORT
         value: 10000
       - key: FRONTEND_URL
@@ -24,15 +26,39 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
+      - key: JWT_EXPIRES_IN
+        value: "1h"
+      - key: OTP_TTL_MINUTES
+        value: "10"
+      - key: OTP_MAX_ATTEMPTS
+        value: "5"
+      - key: PASSWORD_HASH_ROUNDS
+        value: "12"
+      - key: RATE_LIMIT_WINDOW_MS
+        value: "60000"
+      - key: RATE_LIMIT_AUTH_MAX
+        value: "20"
+      - key: RATE_LIMIT_API_MAX
+        value: "300"
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: SMTP_HOST
         sync: false
+      - key: SMTP_SERVICE
+        sync: false
       - key: SMTP_PORT
+        sync: false
+      - key: SMTP_SECURE
+        sync: false
+      - key: SECURE
         sync: false
       - key: SMTP_USER
         sync: false
+      - key: SMTP_MAIL
+        sync: false
       - key: SMTP_PASS
+        sync: false
+      - key: SMTP_PASSWORD
         sync: false
       - key: SMTP_FROM
         sync: false
