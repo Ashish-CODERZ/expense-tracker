@@ -41,22 +41,36 @@ class AuthService {
     };
   }
 
+  isPendingSignupUser(user) {
+    return Boolean(user) && !user.passwordHash && !user.googleId;
+  }
+
   async requestOtp({ email, intent }) {
     let user = await this.userRepository.findByEmail(email);
 
     if (intent === "signup") {
       if (user) {
-        throw new AppError(409, "User already exists. Use login or forgot password.");
-      }
-      try {
-        user = await this.userRepository.create({
-          email
-        });
-      } catch (error) {
-        if (error instanceof DuplicateEmailError) {
+        if (!this.isPendingSignupUser(user)) {
           throw new AppError(409, "User already exists. Use login or forgot password.");
         }
-        throw error;
+      }
+
+      if (!user) {
+        try {
+          user = await this.userRepository.create({
+            email
+          });
+        } catch (error) {
+          if (error instanceof DuplicateEmailError) {
+            const existing = await this.userRepository.findByEmail(email);
+            if (!this.isPendingSignupUser(existing)) {
+              throw new AppError(409, "User already exists. Use login or forgot password.");
+            }
+            user = existing;
+          } else {
+            throw error;
+          }
+        }
       }
     }
 

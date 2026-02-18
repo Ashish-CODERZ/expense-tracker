@@ -20,9 +20,29 @@ const AUTH_STORAGE_KEY = "expense-tracker.auth";
 const PENDING_SUBMISSION_KEY_PREFIX = "expense-tracker.pending-submission";
 const GOOGLE_SCRIPT_ID = "google-gsi-script";
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+const INDIAN_CURRENCY_FORMATTER = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+});
 
 function isValidAmount(value) {
   return /^\d+(\.\d{1,2})?$/.test(value);
+}
+
+function formatInr(value) {
+  const numericValue = Number(value);
+  if (Number.isFinite(numericValue)) {
+    return INDIAN_CURRENCY_FORMATTER.format(numericValue);
+  }
+  return `\u20B9${value}`;
+}
+
+function getTodayLocalDateString() {
+  const now = new Date();
+  const offsetInMs = now.getTimezoneOffset() * 60 * 1000;
+  return new Date(now.getTime() - offsetInMs).toISOString().slice(0, 10);
 }
 
 function readStoredAuth() {
@@ -87,6 +107,7 @@ function App() {
   const searchAbortRef = useRef(null);
   const latestRequestRef = useRef(0);
   const [pendingSubmission, setPendingSubmission] = useState(null);
+  const maxExpenseDate = useMemo(() => getTodayLocalDateString(), []);
 
   const pendingStorageKey = useMemo(() => {
     if (!user?.id) {
@@ -380,6 +401,12 @@ function App() {
     }
   }
 
+  function handleShowOtpForm() {
+    setOtpRequested(true);
+    setAuthError("");
+    setAuthStatus("Enter OTP from your email and set password.");
+  }
+
   async function handleVerifyOtp(event) {
     event.preventDefault();
     if (authLoading) {
@@ -473,6 +500,11 @@ function App() {
       return;
     }
 
+    if (date > maxExpenseDate) {
+      setSubmitError("Date cannot be in the future.");
+      return;
+    }
+
     const payload = {
       amount,
       category,
@@ -523,7 +555,7 @@ function App() {
     }
 
     const confirmed = window.confirm(
-      `Confirm permanent deletion of this expense (${expense.category} - $${expense.amount})?`
+      `Confirm permanent deletion of this expense (${expense.category} - ${formatInr(expense.amount)})?`
     );
     if (!confirmed) {
       return;
@@ -640,6 +672,17 @@ function App() {
                   </button>
                 </form>
 
+                {!otpRequested ? (
+                  <button
+                    type="button"
+                    className="otp-toggle-button"
+                    onClick={handleShowOtpForm}
+                    disabled={authLoading}
+                  >
+                    Already received OTP? Enter it
+                  </button>
+                ) : null}
+
                 {otpRequested ? (
                   <form onSubmit={handleVerifyOtp} className="form-grid auth-form">
                     <label>
@@ -728,6 +771,7 @@ function App() {
                     name="date"
                     type="date"
                     value={form.date}
+                    max={maxExpenseDate}
                     onChange={handleFieldChange}
                     disabled={isSubmitting}
                   />
@@ -872,7 +916,7 @@ function App() {
                           <td>{expense.date}</td>
                           <td>{expense.category}</td>
                           <td>{expense.description || "-"}</td>
-                          <td className="amount-cell">${expense.amount}</td>
+                          <td className="amount-cell">{formatInr(expense.amount)}</td>
                           <td className="action-cell">
                             <button
                               type="button"
@@ -911,7 +955,7 @@ function App() {
               </div>
 
               <p className="total">
-                Total (filtered): <strong>${total}</strong>
+                Total (filtered): <strong>{formatInr(total)}</strong>
               </p>
             </section>
           </>

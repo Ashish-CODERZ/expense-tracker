@@ -33,6 +33,13 @@ async function signupWithOtpUsingMailer(app, mailerService, email, password = "S
   return verifyResponse.body.access_token;
 }
 
+function getUtcDateOffset(daysFromToday) {
+  const date = new Date();
+  date.setUTCHours(0, 0, 0, 0);
+  date.setUTCDate(date.getUTCDate() + daysFromToday);
+  return date.toISOString().slice(0, 10);
+}
+
 describe("Auth + Expense API", () => {
   let app;
   let mailerService;
@@ -80,6 +87,54 @@ describe("Auth + Expense API", () => {
         date: "2026-02-17"
       })
     );
+  });
+
+  it("allows repeated signup OTP requests for the same pending email", async () => {
+    const email = "repeat-signup@example.com";
+
+    const firstRequest = await request(app).post("/auth/request-otp").send({
+      email,
+      intent: "signup"
+    });
+    expect(firstRequest.status).toBe(200);
+
+    const secondRequest = await request(app).post("/auth/request-otp").send({
+      email,
+      intent: "signup"
+    });
+    expect(secondRequest.status).toBe(200);
+
+    const latestOtp = mailerService.getLatestOtp(email, "signup");
+    expect(latestOtp).toMatch(/^\d{6}$/);
+
+    const verifyResponse = await request(app).post("/auth/verify-otp").send({
+      email,
+      intent: "signup",
+      otp: latestOtp,
+      password: "RepeatedOtp123"
+    });
+
+    expect(verifyResponse.status).toBe(200);
+    expect(verifyResponse.body.access_token).toEqual(expect.any(String));
+  });
+
+  it("rejects creating an expense with a future date", async () => {
+    const token = await signupWithOtpUsingMailer(app, mailerService, "future-date@example.com");
+    const tomorrow = getUtcDateOffset(1);
+
+    const response = await request(app)
+      .post("/expenses")
+      .set("Authorization", `Bearer ${token}`)
+      .set("Idempotency-Key", "future-date-key")
+      .send({
+        amount: "12.50",
+        category: "Food",
+        description: "Invalid future entry",
+        date: tomorrow
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.message).toContain("future");
   });
 
   it("logs in using email and password after OTP signup", async () => {

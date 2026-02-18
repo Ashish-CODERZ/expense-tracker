@@ -28,6 +28,18 @@ function parseDateOnly(value, fieldName = "Date") {
   return date;
 }
 
+function getTodayUtcStart() {
+  const todayUtc = new Date();
+  todayUtc.setUTCHours(0, 0, 0, 0);
+  return todayUtc;
+}
+
+function assertNotFutureDate(date, fieldName = "Date") {
+  if (date.getTime() > getTodayUtcStart().getTime()) {
+    throw new AppError(400, `${fieldName} cannot be in the future`);
+  }
+}
+
 function parseIntegerQuery(value, fieldName, { min, max, defaultValue, required = false } = {}) {
   if (value === undefined || value === null || value === "") {
     if (required && defaultValue === undefined) {
@@ -91,12 +103,15 @@ function validateCreateExpense(req, res, next) {
       throw new AppError(400, "Date is required");
     }
 
+    const parsedDate = parseDateOnly(date);
+    assertNotFutureDate(parsedDate);
+
     req.idempotencyKey = idempotencyKey;
     req.expenseInput = {
       amount: normalizeAmount(amount),
       category: category.trim(),
       description: typeof description === "string" && description.trim() ? description.trim() : null,
-      date: parseDateOnly(date)
+      date: parsedDate
     };
 
     return next();
